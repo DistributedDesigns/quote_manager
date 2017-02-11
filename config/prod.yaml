@@ -1,0 +1,24 @@
+rabbit:
+  host: "localhost"
+  port: 44430
+  user: "guest"
+  pass: "guest"
+  queues:
+    quote broadcasts: "quote_broadcast"
+    quote requests: "quote_req"
+
+quoteserver:
+  host: "quoteserve.seng.uvic.ca"
+  port: 4443
+
+redis:
+  host: "localhost"
+  port: 44431
+  max idle connections: 5
+  max active connections: 0
+  idle timeout: 30
+  key prefix: "quotemgr:"
+
+quote policy:
+  base ttl: 55
+  backoff ttl: 4
