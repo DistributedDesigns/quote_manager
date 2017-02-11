@@ -1,3 +1,0 @@
-[submodule "shared_config"]
-	path = shared_config
-	url = https://github.com/DistributedDesigns/shared_config.git
