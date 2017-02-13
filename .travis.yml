@@ -11,6 +11,8 @@ before_install:
 install:
   - go get
   - go build .
+
+script:
   - gometalinter --config=.gometalinterrc ./...
 
 notifications:
