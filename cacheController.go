@@ -15,7 +15,7 @@ func getCachedQuote(stock string) (types.Quote, bool) {
 	quoteKey := makeQuoteKey(stock)
 	r, err := redis.String(conn.Do("GET", quoteKey))
 	if err == redis.ErrNil {
-		consoleLog.Infof(" [x] Cache miss: %s", quoteKey)
+		consoleLog.Debugf(" [x] Cache miss: %s", quoteKey)
 		return types.Quote{}, false
 	} else if err != nil {
 		failOnError(err, "Could not retrieve quote from redis")

@@ -30,10 +30,14 @@ func retrieveAndPublishQuote(req amqp.Delivery) {
 	qr, err := types.ParseQuoteRequest(string(req.Body))
 	failOnError(err, "Could not parse quote request")
 
+	// Quotes are published to XYZ.cached or XYZ.fresh depending on
+	// cache hit / miss. Optimistically assume hit.
+	routingSuffix := ".cached"
 	quote, found := getCachedQuote(qr.Stock)
 	if !found {
 		consoleLog.Noticef(" [⟳] Getting new quote for %s", qr.Stock)
 		quote = getNewQuote(qr)
+		routingSuffix = ".fresh"
 		go updateCachedQuote(quote)
 	}
 
@@ -48,9 +52,9 @@ func retrieveAndPublishQuote(req amqp.Delivery) {
 
 	err = ch.Publish(
 		config.Rabbit.Exchanges.QuoteBroadcast, // exchange
-		qr.Stock, // routing key
-		false,    // mandatory
-		false,    // immediate
+		qr.Stock+routingSuffix,                 // routing key
+		false, // mandatory
+		false, // immediate
 		amqp.Publishing{
 			Headers:       header,
 			CorrelationId: req.CorrelationId,
