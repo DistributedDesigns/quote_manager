@@ -17,5 +17,5 @@ redis:
   key prefix: "quotemgr:"
 
 quote policy:
-  base ttl: 55
+  base ttl: 59
   backoff ttl: 4

@@ -2,6 +2,7 @@ package main
 
 import (
 	"math/rand"
+	"time"
 
 	types "github.com/distributeddesigns/shared_types"
 
@@ -28,7 +29,8 @@ func getCachedQuote(stock string) (types.Quote, bool) {
 }
 
 func updateCachedQuote(q types.Quote) {
-	ttl := config.QuotePolicy.BaseTTL + rand.Intn(config.QuotePolicy.BackoffTTL)
+	quoteAge := time.Now().Unix() - q.Timestamp.Unix()
+	ttl := config.QuotePolicy.BaseTTL - rand.Intn(config.QuotePolicy.BackoffTTL) - int(quoteAge)
 	quoteKey := makeQuoteKey(q.Stock)
 	serializedQuote := q.ToCSV()
 
