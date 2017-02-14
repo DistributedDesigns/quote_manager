@@ -41,6 +41,12 @@ var (
 	redisPool *redis.Pool
 )
 
+const (
+	// Shared RMQ queues / exchanges
+	quoteRequestQ    = "quote_req"
+	quoteBroadcastEx = "quote_broadcast"
+)
+
 func main() {
 	rand.Seed(time.Now().Unix())
 
@@ -92,16 +98,10 @@ func initConsoleLogging() {
 // 'PascalCase' values come from 'pascalcase' in x.yaml
 var config struct {
 	Rabbit struct {
-		Host   string
-		Port   int
-		User   string
-		Pass   string
-		Queues struct {
-			QuoteRequest string `yaml:"quote request"`
-		}
-		Exchanges struct {
-			QuoteBroadcast string `yaml:"quote broadcast"`
-		}
+		Host string
+		Port int
+		User string
+		Pass string
 	}
 
 	QuoteServer struct {
@@ -152,24 +152,24 @@ func initRMQ() {
 	// exist before we start using them.
 	// Recieve requests
 	_, err = ch.QueueDeclare(
-		config.Rabbit.Queues.QuoteRequest, // name
-		true,  // durable
-		false, // delete when unused
-		false, // exclusive
-		false, // no wait
-		nil,   // arguments
+		quoteRequestQ, // name
+		true,          // durable
+		false,         // delete when unused
+		false,         // exclusive
+		false,         // no wait
+		nil,           // arguments
 	)
 	failOnError(err, "Failed to declare a queue")
 
 	// Broadcasting quote updates
 	err = ch.ExchangeDeclare(
-		config.Rabbit.Exchanges.QuoteBroadcast, // name
-		amqp.ExchangeTopic,                     // type
-		true,                                   // durable
-		false,                                  // auto-deleted
-		false,                                  // internal
-		false,                                  // no-wait
-		nil,                                    // args
+		quoteBroadcastEx,   // name
+		amqp.ExchangeTopic, // type
+		true,               // durable
+		false,              // auto-deleted
+		false,              // internal
+		false,              // no-wait
+		nil,                // args
 	)
 	failOnError(err, "Failed to declare an exchange")
 }

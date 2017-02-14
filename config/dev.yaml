@@ -3,10 +3,6 @@ rabbit:
   port: 44430
   user: "guest"
   pass: "guest"
-  queues:
-    quote request: "quote_req"
-  exchanges:
-    quote broadcast: "quote_broadcast"
 
 quote server:
   host: "localhost"

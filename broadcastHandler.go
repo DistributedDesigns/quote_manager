@@ -51,8 +51,8 @@ func retrieveAndPublishQuote(req amqp.Delivery) {
 	}
 
 	err = ch.Publish(
-		config.Rabbit.Exchanges.QuoteBroadcast, // exchange
-		qr.Stock+routingSuffix,                 // routing key
+		quoteBroadcastEx,       // exchange
+		qr.Stock+routingSuffix, // routing key
 		false, // mandatory
 		false, // immediate
 		amqp.Publishing{

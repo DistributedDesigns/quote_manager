@@ -3,9 +3,6 @@ rabbit:
   port: 44430
   user: "guest"
   pass: "guest"
-  queues:
-    quote broadcasts: "quote_broadcast"
-    quote requests: "quote_req"
 
 quoteserver:
   host: "quoteserve.seng.uvic.ca"

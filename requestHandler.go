@@ -7,20 +7,20 @@ func handleQuoteRequest() {
 	defer ch.Close()
 
 	msgs, err := ch.Consume(
-		config.Rabbit.Queues.QuoteRequest, // queue
-		"",    // consumer
-		false, // auto-ack
-		false, // exclusive
-		false, // no-local
-		false, // no-wait
-		nil,   // args
+		quoteRequestQ, // queue
+		"",            // consumer
+		false,         // auto-ack
+		false,         // exclusive
+		false,         // no-local
+		false,         // no-wait
+		nil,           // args
 	)
 	failOnError(err, "Failed to register a consumer")
 
 	forever := make(chan bool)
 
 	go func() {
-		consoleLog.Infof(" [-] Monitoring %s", config.Rabbit.Queues.QuoteRequest)
+		consoleLog.Infof(" [-] Monitoring %s", quoteRequestQ)
 
 		for d := range msgs {
 			consoleLog.Infof(" [↓] Request: TxID %s, '%s'", d.CorrelationId, d.Body)
