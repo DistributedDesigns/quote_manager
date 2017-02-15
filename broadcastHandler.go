@@ -34,7 +34,7 @@ func retrieveAndPublishQuote(req amqp.Delivery) {
 	// cache hit / miss. Optimistically assume hit.
 	routingSuffix := ".cached"
 	quote, found := getCachedQuote(qr.Stock)
-	if !found {
+	if !found || !qr.AllowCache {
 		consoleLog.Noticef(" [⟳] Getting new quote for %s", qr.Stock)
 		quote = getNewQuote(qr)
 		routingSuffix = ".fresh"
