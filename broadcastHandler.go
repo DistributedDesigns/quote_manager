@@ -76,7 +76,7 @@ func getNewQuote(qr types.QuoteRequest) types.Quote {
 	defer quoteServerrmqConn.Close()
 
 	// quoteserve.seng reads until it sees a \n
-	quoteServerMessage := qr.ToCSV() + "\n"
+	quoteServerMessage := fmt.Sprintf("%s,%s\n", qr.Stock, qr.UserID)
 	quoteServerrmqConn.Write([]byte(quoteServerMessage))
 	// TODO: retry on timeout?
 
