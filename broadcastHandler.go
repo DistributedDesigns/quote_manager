@@ -45,9 +45,7 @@ func retrieveAndPublishQuote(req amqp.Delivery) {
 	failOnError(err, "Failed to open a channel")
 
 	header := amqp.Table{
-		"serviceID":     *serviceID,
-		"transactionID": req.Headers["transactionID"],
-		"userID":        req.Headers["userID"],
+		"serviceID": *serviceID,
 	}
 
 	err = ch.Publish(
@@ -63,7 +61,7 @@ func retrieveAndPublishQuote(req amqp.Delivery) {
 		})
 	failOnError(err, "Failed to publish a message")
 
-	consoleLog.Infof(" [↑] Broadcast: TxID %d %s %s", header["transactionID"], quote.Stock, quote.Price.String())
+	consoleLog.Infof(" [↑] Broadcast: TxID %d %s %s", quote.ID, quote.Stock, quote.Price.String())
 }
 
 func getNewQuote(qr types.QuoteRequest) types.Quote {
@@ -87,6 +85,8 @@ func getNewQuote(qr types.QuoteRequest) types.Quote {
 		failOnError(err, "Failed to read quote server response")
 	}
 
+	// Append the quote request transaction ID to the quote
+	response = fmt.Sprintf("%s,%d", response, qr.ID)
 	quote, err := types.ParseQuote(response)
 	failOnError(err, "Could not parse quote response")
 
