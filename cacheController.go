@@ -31,13 +31,18 @@ func getCachedQuote(stock string) (types.Quote, bool) {
 func updateCachedQuote(q types.Quote) {
 	quoteAge := time.Now().Unix() - q.Timestamp.Unix()
 	ttl := config.QuotePolicy.BaseTTL - rand.Intn(config.QuotePolicy.BackoffTTL) - int(quoteAge)
-	quoteKey := makeQuoteKey(q.Stock)
-	serializedQuote := q.ToCSV()
+
+	if ttl <= 0 {
+		consoleLog.Debugf("Invalid ttl: %d. Not caching.", ttl)
+		return
+	}
 
 	conn := redisPool.Get()
 	defer conn.Close()
 
-	_, err := redis.String(conn.Do("SETEX", quoteKey, ttl, serializedQuote))
+	quoteKey := makeQuoteKey(q.Stock)
+	serializedQuote := q.ToCSV()
+	_, err := conn.Do("SETEX", quoteKey, ttl, serializedQuote)
 	failOnError(err, "Could not update quote in redis")
 
 	consoleLog.Debugf("Updated: %s:%s", quoteKey, serializedQuote)
