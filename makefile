@@ -14,7 +14,7 @@ install:
 	go get
 	go install
 	chmod +x githooks/pre-push
-	ln -s $PWD/githooks/pre-push $PWD/.git/hooks/pre-push
+	ln -s ${PWD}/githooks/pre-push ${PWD}/.git/hooks/pre-push
 
 run: run-rmq run-redis
 
