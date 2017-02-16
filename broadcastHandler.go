@@ -43,6 +43,7 @@ func retrieveAndPublishQuote(req amqp.Delivery) {
 
 	ch, err := rmqConn.Channel()
 	failOnError(err, "Failed to open a channel")
+	defer ch.Close()
 
 	header := amqp.Table{
 		"serviceID": *serviceID,

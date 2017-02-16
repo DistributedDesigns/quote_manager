@@ -54,6 +54,9 @@ func makeQuoteKey(stock string) string {
 	// of the quoteserver.
 	// TODO: Quote{} should enforce the size limit?
 
-	shortStock := stock[:3]
-	return config.Redis.KeyPrefix + "quotes:" + shortStock
+	if len(stock) > 3 {
+		stock = stock[:3]
+	}
+
+	return config.Redis.KeyPrefix + "quotes:" + stock
 }
