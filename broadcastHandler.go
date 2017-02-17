@@ -70,16 +70,16 @@ func getNewQuote(qr types.QuoteRequest) types.Quote {
 		config.QuoteServer.Host, config.QuoteServer.Port,
 	)
 
-	quoteServerrmqConn, err := net.DialTimeout("tcp", quoteServerAddress, time.Second*5)
-	failOnError(err, "Could not rmqConnect to "+quoteServerAddress)
-	defer quoteServerrmqConn.Close()
+	quoteServerConn, err := net.DialTimeout("tcp", quoteServerAddress, time.Second*5)
+	failOnError(err, "Could not connect to "+quoteServerAddress)
+	defer quoteServerConn.Close()
 
 	// quoteserve.seng reads until it sees a \n
 	quoteServerMessage := fmt.Sprintf("%s,%s\n", qr.Stock, qr.UserID)
-	quoteServerrmqConn.Write([]byte(quoteServerMessage))
+	quoteServerConn.Write([]byte(quoteServerMessage))
 	// TODO: retry on timeout?
 
-	response, err := bufio.NewReader(quoteServerrmqConn).ReadString('\n')
+	response, err := bufio.NewReader(quoteServerConn).ReadString('\n')
 	// when stream is done an EOF is emitted that we should ignore
 	if err != io.EOF && err != nil {
 		// TODO: retry on timeout?

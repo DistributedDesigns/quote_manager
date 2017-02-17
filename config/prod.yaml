@@ -4,7 +4,7 @@ rabbit:
   user: "guest"
   pass: "guest"
 
-quoteserver:
+quote server:
   host: "quoteserve.seng.uvic.ca"
   port: 4443
 
