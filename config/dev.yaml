@@ -7,6 +7,8 @@ rabbit:
 quote server:
   host: "localhost"
   port: 4443
+  retry: 150 # milliseconds
+  backoff: 10 # milliseconds
 
 redis:
   host: "localhost"

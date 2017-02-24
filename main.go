@@ -105,8 +105,10 @@ var config struct {
 	}
 
 	QuoteServer struct {
-		Host string
-		Port int
+		Host    string
+		Port    int
+		Retry   int
+		Backoff int
 	} `yaml:"quote server"`
 
 	Redis struct {
