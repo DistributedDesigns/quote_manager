@@ -91,5 +91,13 @@ func getNewQuote(qr types.QuoteRequest) types.Quote {
 	quote, err := types.ParseQuote(response)
 	failOnError(err, "Could not parse quote response")
 
+	// ParseQuote expects the timestamp to be passed as seconds but the
+	// quoteserver timestamp is in milliseconds. Hence, the quote we just
+	// created has the wrong time. We need to convert its time down
+	// to seconds and preserve its accuracy.
+	seconds := quote.Timestamp.Unix() / 1e3
+	nano := (quote.Timestamp.UnixNano() / 1e3) % 1e9
+	quote.Timestamp = time.Unix(seconds, nano)
+
 	return quote
 }
