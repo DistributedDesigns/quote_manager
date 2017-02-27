@@ -1,9 +1,8 @@
 package main
 
 import (
-	"bufio"
+	"bytes"
 	"fmt"
-	"io"
 	"net"
 	"time"
 
@@ -70,25 +69,69 @@ func getNewQuote(qr types.QuoteRequest) types.Quote {
 		config.QuoteServer.Host, config.QuoteServer.Port,
 	)
 
-	quoteServerConn, err := net.DialTimeout("tcp", quoteServerAddress, time.Second*5)
-	failOnError(err, "Could not connect to "+quoteServerAddress)
-	defer quoteServerConn.Close()
-
 	// quoteserve.seng reads until it sees a \n
 	quoteServerMessage := fmt.Sprintf("%s,%s\n", qr.Stock, qr.UserID)
-	quoteServerConn.Write([]byte(quoteServerMessage))
-	// TODO: retry on timeout?
 
-	response, err := bufio.NewReader(quoteServerConn).ReadString('\n')
-	// when stream is done an EOF is emitted that we should ignore
-	if err != io.EOF && err != nil {
-		// TODO: retry on timeout?
-		failOnError(err, "Failed to read quote server response")
+	readTimeoutBase := time.Millisecond * time.Duration(config.QuoteServer.Retry)
+	backoff := time.Millisecond * time.Duration(config.QuoteServer.Backoff)
+
+	respBuf := make([]byte, 1024)
+	attempts := 1
+
+	// Loop until read completes or deadline arrives. Do exponential backoff
+	// if we time out.
+	for {
+		consoleLog.Debug("Attempt", attempts)
+
+		// Get a new connection
+		quoteServerConn, err := net.DialTimeout("tcp", quoteServerAddress, time.Second*5)
+		failOnError(err, "Could not connect to "+quoteServerAddress)
+
+		// Send the message
+		quoteServerConn.Write([]byte(quoteServerMessage))
+
+		// Set the deadline
+		timeout := readTimeoutBase + backoff
+		quoteServerConn.SetReadDeadline(time.Now().Add(timeout))
+
+		// Wait for read or timeout
+		_, err = quoteServerConn.Read(respBuf)
+
+		// We either read successfuly or we need to backoff and make
+		// a new connection.
+		quoteServerConn.Close()
+
+		// If everything was okay then we got a response
+		if err == nil {
+			// Exit the loop
+			break
+		}
+
+		// Don't back off forever. Max delay from quote server is 4s.
+		// Fail if we waited > 5s so we can investigate.
+		if timeout > time.Second*5 {
+			consoleLog.Fatalf("No response from %s after %d ms", quoteServerAddress, timeout/1e6)
+		}
+
+		// check for a timeout
+		if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
+			// do the backoff and try again
+			backoff *= 2
+			consoleLog.Debugf("Attempt %d timeout. Waiting for %d ms", attempts, timeout/1e6)
+		} else {
+			failOnError(err, "Failed to read from quoteserver")
+		}
+
+		attempts++
 	}
 
-	// Append the quote request transaction ID to the quote
-	response = fmt.Sprintf("%s,%d", response, qr.ID)
-	quote, err := types.ParseQuote(response)
+	// clean up the unused space in the buffer
+	respBuf = bytes.Trim(respBuf, "\x00")
+
+	// Append the quote request transaction ID to the quote so the ID
+	// will be associated with the object when it's parsed.
+	respWithTxID := fmt.Sprintf("%s,%d", string(respBuf), qr.ID)
+	quote, err := types.ParseQuote(respWithTxID)
 	failOnError(err, "Could not parse quote response")
 
 	// ParseQuote expects the timestamp to be passed as seconds but the
