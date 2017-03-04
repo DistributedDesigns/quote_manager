@@ -61,6 +61,8 @@ func retrieveAndPublishQuote(req amqp.Delivery) {
 		})
 	failOnError(err, "Failed to publish a message")
 
+	req.Ack(false)
+
 	consoleLog.Infof(" [↑] Broadcast: TxID %d %s %s", quote.ID, quote.Stock, quote.Price.String())
 }
 
