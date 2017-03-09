@@ -26,7 +26,7 @@ func handleQuoteRequest() {
 			consoleLog.Infof(" [↓] Request: TxID %s, '%s'", d.CorrelationId, d.Body)
 			consoleLog.Debugf("Headers: %+v", d.Headers)
 			pendingQuoteReqs <- d
-			d.Ack(false)
+			// message ACKed after broadcast
 		}
 	}()
 
