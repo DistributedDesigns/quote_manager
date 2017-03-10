@@ -67,10 +67,6 @@ func retrieveAndPublishQuote(req amqp.Delivery) {
 }
 
 func getNewQuote(qr types.QuoteRequest) types.Quote {
-	quoteServerAddress := fmt.Sprintf("%s:%d",
-		config.QuoteServer.Host, config.QuoteServer.Port,
-	)
-
 	// quoteserve.seng reads until it sees a \n
 	quoteServerMessage := fmt.Sprintf("%s,%s\n", qr.Stock, qr.UserID)
 
@@ -86,13 +82,18 @@ func getNewQuote(qr types.QuoteRequest) types.Quote {
 		consoleLog.Debug("Attempt", attempts)
 
 		// Get a new connection
-		quoteServerConn, err := net.DialTimeout("tcp", quoteServerAddress, time.Second*5)
-		failOnError(err, "Could not connect to "+quoteServerAddress)
+		// Assigning local addr as <nil> will default to using localhost
+		// with ports in the ephemeral range.
+		quoteServerConn, err := net.DialTCP("tcp", nil, quoteServerTCPAddr)
+		failOnError(err, "Could not connect to "+quoteServerTCPAddr.String())
+
+		// Timeout if we can't send to legacy server
+		quoteServerConn.SetWriteDeadline(time.Now().Add(time.Second * 5))
 
 		// Send the message
 		quoteServerConn.Write([]byte(quoteServerMessage))
 
-		// Set the deadline
+		// Set the response deadline
 		timeout := readTimeoutBase + backoff
 		quoteServerConn.SetReadDeadline(time.Now().Add(timeout))
 
@@ -100,7 +101,7 @@ func getNewQuote(qr types.QuoteRequest) types.Quote {
 		_, err = quoteServerConn.Read(respBuf)
 
 		// We either read successfuly or we need to backoff and make
-		// a new connection.
+		// a new connection. Either way we're done with the connection.
 		quoteServerConn.Close()
 
 		// If everything was okay then we got a response
@@ -112,7 +113,7 @@ func getNewQuote(qr types.QuoteRequest) types.Quote {
 		// Don't back off forever. Max delay from quote server is 4s.
 		// Fail if we waited > 5s so we can investigate.
 		if timeout > time.Second*5 {
-			consoleLog.Fatalf("No response from %s after %d ms", quoteServerAddress, timeout/1e6)
+			consoleLog.Fatalf("No response from %s after %d ms", quoteServerTCPAddr.String(), timeout/1e6)
 		}
 
 		// check for a timeout
