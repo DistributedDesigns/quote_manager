@@ -7,7 +7,7 @@ rabbit:
 quote server:
   host: "quoteserve.seng.uvic.ca"
   port: 4443
-  retry: 150
+  retry: 20
   backoff: 5
 
 redis:
