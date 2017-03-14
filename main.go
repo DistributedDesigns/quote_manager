@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math/rand"
+	"net"
 	"os"
 	"strings"
 	"time"
@@ -39,6 +40,8 @@ var (
 
 	rmqConn   *amqp.Connection
 	redisPool *redis.Pool
+
+	quoteServerTCPAddr *net.TCPAddr
 )
 
 const (
@@ -53,6 +56,7 @@ func main() {
 	kingpin.Parse()
 	initConsoleLogging()
 	loadConfig()
+	resolveTCPAddresses()
 	initRMQ()
 	defer rmqConn.Close()
 	initRedis()
@@ -133,6 +137,18 @@ func loadConfig() {
 
 	err = yaml.Unmarshal(data, &config)
 	failOnError(err, "Could not unmarshal config")
+}
+
+func resolveTCPAddresses() {
+	// TCP connections need to know the specific IP for the destination.
+	// We can do the lookup in advance since destinations are fixed.
+	quoteServerAddress := fmt.Sprintf("%s:%d",
+		config.QuoteServer.Host, config.QuoteServer.Port,
+	)
+
+	var err error
+	quoteServerTCPAddr, err = net.ResolveTCPAddr("tcp", quoteServerAddress)
+	failOnError(err, "Could not resolve TCP addr for "+quoteServerAddress)
 }
 
 func initRMQ() {
