@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"net"
+	"os"
 	"time"
 
 	"github.com/distributeddesigns/shared_types"
@@ -76,6 +77,10 @@ func getNewQuote(qr types.QuoteRequest) types.Quote {
 	respBuf := make([]byte, 1024)
 	attempts := 1
 
+	// Start timing total response time
+	var elapsedTime int64 // preallocate
+	quoteReqStart := time.Now()
+
 	// Loop until read completes or deadline arrives. Do exponential backoff
 	// if we time out.
 	for {
@@ -106,6 +111,10 @@ func getNewQuote(qr types.QuoteRequest) types.Quote {
 
 		// If everything was okay then we got a response
 		if err == nil {
+			// Log the time it took to get a resonpose
+			elapsedTime = time.Since(quoteReqStart).Nanoseconds()
+			fmt.Fprintf(os.Stderr, "%d,%d\n", elapsedTime, attempts)
+
 			// Exit the loop
 			break
 		}
