@@ -18,8 +18,7 @@ import (
 
 // Globals
 var (
-	consoleLog       = logging.MustGetLogger("console")
-	pendingQuoteReqs = make(chan amqp.Delivery)
+	consoleLog = logging.MustGetLogger("console")
 
 	rmqConn   *amqp.Connection
 	redisPool *redis.Pool
@@ -47,7 +46,6 @@ func main() {
 
 	go quoteCatcher()
 	go handleQuoteRequest()
-	go handleQuoteBroadcast()
 
 	<-forever
 }

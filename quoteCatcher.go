@@ -23,11 +23,9 @@ func quoteCatcher() {
 	)
 	failOnError(err, "Failed to declare a queue")
 
-	// Receive all fresh quotes
-	freshQuotes := "*.fresh"
 	err = ch.QueueBind(
 		q.Name,           // name
-		freshQuotes,      // routing key
+		"*.fresh",        // routing key
 		quoteBroadcastEx, // exchange
 		false,            // no-wait
 		nil,              // args
