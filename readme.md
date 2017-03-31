@@ -18,6 +18,13 @@ go run *.go # *.go since `package main` is spread over multiple files
 ```
 
 ## Odds and ends
+### Running in a multi quote server environment
+Each quoteserver will snoop on quote broadcasts from other quoteservers. The filter is set with the `-s`/`--service-id` runtime flag.
+```shell
+# A multi quote server deploy
+quote_server -s qmgr:1
+```
+
 ### Specifying a config
 Call the service with the `--config=./path/to/config.yaml` flag and point it at a `.yaml` file following the schema in [./config](./config). The [dev config](./config/dev.yaml) is used by default.
 
