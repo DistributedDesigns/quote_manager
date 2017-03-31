@@ -45,7 +45,7 @@ func retrieveAndPublishQuote(req amqp.Delivery) {
 	defer ch.Close()
 
 	header := amqp.Table{
-		"serviceID": *serviceID,
+		"serviceID": config.env.serviceID,
 	}
 
 	err = ch.Publish(

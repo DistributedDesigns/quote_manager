@@ -18,23 +18,6 @@ import (
 
 // Globals
 var (
-	logLevels = []string{"CRITICAL", "ERROR", "WARNING", "NOTICE", "INFO", "DEBUG"}
-	logLevel  = kingpin.
-			Flag("log-level", fmt.Sprintf("Minimum level for logging to the console. Must be one of: %s", strings.Join(logLevels, ", "))).
-			Default("WARNING").
-			Short('l').
-			Enum(logLevels...)
-	serviceID = kingpin.
-			Flag("service-id", "Logging name for the service").
-			Default("quotemgr").
-			Short('s').
-			String()
-	configFile = kingpin.
-			Flag("config", "YAML file with service config").
-			Default("./config/dev.yaml").
-			Short('c').
-			ExistingFile()
-
 	consoleLog       = logging.MustGetLogger("console")
 	pendingQuoteReqs = make(chan amqp.Delivery)
 
@@ -53,9 +36,8 @@ const (
 func main() {
 	rand.Seed(time.Now().Unix())
 
-	kingpin.Parse()
-	initConsoleLogging()
 	loadConfig()
+	initConsoleLogging()
 	resolveTCPAddresses()
 	initRMQ()
 	defer rmqConn.Close()
@@ -63,6 +45,7 @@ func main() {
 
 	forever := make(chan bool)
 
+	go quoteCatcher()
 	go handleQuoteRequest()
 	go handleQuoteBroadcast()
 
@@ -82,12 +65,12 @@ func initConsoleLogging() {
 
 	// Add output formatting
 	var consoleFormat = logging.MustStringFormatter(
-		`%{time:15:04:05.000} %{color}▶ %{level:8s}%{color:reset} %{id:03d} %{message} %{shortfile}`,
+		`%{time:15:04:05.000} %{color}▶ %{level:8s}%{color:reset} %{id:03d} %{message} (%{shortfile})`,
 	)
 	consoleBackendFormatted := logging.NewBackendFormatter(consoleBackend, consoleFormat)
 
 	// Add leveled logging
-	level, err := logging.LogLevel(*logLevel)
+	level, err := logging.LogLevel(config.env.logLevel)
 	if err != nil {
 		fmt.Println("Bad log level. Using default level of ERROR")
 	}
@@ -101,6 +84,14 @@ func initConsoleLogging() {
 // Holds values from <config>.yaml.
 // 'PascalCase' values come from 'pascalcase' in x.yaml
 var config struct {
+	// Stuff from the command line, through kingpin
+	env struct {
+		logLevel   string
+		serviceID  string
+		configFile string
+	}
+
+	// Stuff from ./config/$env.yaml
 	Rabbit struct {
 		Host string
 		Port int
@@ -131,12 +122,38 @@ var config struct {
 }
 
 func loadConfig() {
+	app := kingpin.New("quote_manager", "Get quotes from the legacy service")
+
+	var logLevels = []string{"CRITICAL", "ERROR", "WARNING", "NOTICE", "INFO", "DEBUG"}
+
+	app.Flag("log-level", fmt.Sprintf("Minimum level for logging to the console. Must be one of: %s", strings.Join(logLevels, ", "))).
+		Default("WARNING").
+		Short('l').
+		EnumVar(&config.env.logLevel, logLevels...)
+
+	app.Flag("service-id", "Logging name for the service").
+		Default("quotemgr").
+		Short('s').
+		StringVar(&config.env.serviceID)
+
+	app.Flag("config", "YAML file with service config").
+		Default("./config/dev.yaml").
+		Short('c').
+		ExistingFileVar(&config.env.configFile)
+
+	kingpin.MustParse(app.Parse(os.Args[1:]))
+
 	// Load the yaml file
-	data, err := ioutil.ReadFile(*configFile)
-	failOnError(err, "Could not read file")
+	data, err := ioutil.ReadFile(config.env.configFile)
+	if err != nil {
+		// `consoleLog` not set up yet so fail the old-fashioned way.
+		panic(err)
+	}
 
 	err = yaml.Unmarshal(data, &config)
-	failOnError(err, "Could not unmarshal config")
+	if err != nil {
+		panic(err)
+	}
 }
 
 func resolveTCPAddresses() {
