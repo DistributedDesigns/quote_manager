@@ -44,6 +44,7 @@ func main() {
 
 	forever := make(chan bool)
 
+	go quoteCatcher()
 	go handleQuoteRequest()
 
 	<-forever
